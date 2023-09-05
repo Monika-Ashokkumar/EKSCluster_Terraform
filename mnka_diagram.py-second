@@ -1,0 +1,103 @@
+from diagrams import Cluster, Diagram
+from diagrams.aws.compute import EKS, EC2
+from diagrams.aws.network import VPC, PrivateSubnet, PublicSubnet
+from diagrams.aws.security import IAM, IAMRole
+
+import json
+
+with open('terraform.tfstate') as json_file:
+    tf_data = json.load(json_file)
+
+r_names = []
+for x in tf_data['resources']:
+    r_names.append(x['name'])
+
+resource_list = [
+    'private_subnet_1_mnka',
+    'private_subnet_2_mnka',
+    'public_subnet_1_mnka',
+    'public_subnet_2_mnka',
+    'custom_vpc_mnka',
+    'eks_assume_role_policy_mnka',
+    'my_eks_cluster_mnka',
+    'eks_nodegroup_mnka',
+    'eks_cluster_autoscaler_role_mnka',
+    'eks_cluster_policy_attachment',
+    'eks_ecr_read_only_policy_attachment',
+    'eks_ecr_readonly_policy_attachment',
+    'eks_worker_node_policy_attachment'
+]
+
+with Diagram("AWS Resources from Terraform State", show=False):
+    with Cluster("VPC: custom_vpc_mnka"):
+        vpc = VPC("custom_vpc_mnka")
+
+        with Cluster("Subnets"):
+            private1 = Subnet("private_subnet_1_mnka")
+            private2 = Subnet("private_subnet_2_mnka")
+            public1 = Subnet("public_subnet_1_mnka")
+            public2 = Subnet("public_subnet_2_mnka")
+
+            vpc >> private1
+            vpc >> private2
+            vpc >> public1
+            vpc >> public2
+
+    with Cluster("EKS Cluster"):
+        eks_cluster = EKS("my_eks_cluster_mnka")
+        eks_nodegroup = EC2("eks_nodegroup_mnka")
+        
+        eks_cluster >> eks_nodegroup
+
+        with Cluster("Roles and Policies"):
+            assume_role = Role("eks_assume_role_policy_mnka")
+            autoscaler_role = Role("eks_cluster_autoscaler_role_mnka")
+            worker_node_policy = Role("eks_worker_node_policy_attachment")
+
+            eks_cluster >> assume_role
+            eks_cluster >> autoscaler_role
+            eks_cluster >> worker_node_policy
+
+# This will generate a .png file in your current directory. Check the diagrams documentation for more customization.
+# ...[Your previous code]...
+
+with Diagram("AWS Resources from Terraform State", show=False):
+    if 'custom_vpc_mnka' in r_names:
+        with Cluster("VPC: custom_vpc_mnka"):
+            vpc = VPC("custom_vpc_mnka")
+
+            if any(subnet in r_names for subnet in ['private_subnet_1_mnka', 'private_subnet_2_mnka', 'public_subnet_1_mnka', 'public_subnet_2_mnka']):
+                with Cluster("Subnets"):
+                    if 'private_subnet_1_mnka' in r_names:
+                        private1 = Subnet("private_subnet_1_mnka")
+                        vpc >> private1
+                    if 'private_subnet_2_mnka' in r_names:
+                        private2 = Subnet("private_subnet_2_mnka")
+                        vpc >> private2
+                    if 'public_subnet_1_mnka' in r_names:
+                        public1 = Subnet("public_subnet_1_mnka")
+                        vpc >> public1
+                    if 'public_subnet_2_mnka' in r_names:
+                        public2 = Subnet("public_subnet_2_mnka")
+                        vpc >> public2
+
+    if 'my_eks_cluster_mnka' in r_names:
+        with Cluster("EKS Cluster"):
+            eks_cluster = EKS("my_eks_cluster_mnka")
+            
+            if 'eks_nodegroup_mnka' in r_names:
+                eks_nodegroup = EC2("eks_nodegroup_mnka")
+                eks_cluster >> eks_nodegroup
+
+            if any(role in r_names for role in ['eks_assume_role_policy_mnka', 'eks_cluster_autoscaler_role_mnka', 'eks_worker_node_policy_attachment']):
+                with Cluster("Roles and Policies"):
+                    if 'eks_assume_role_policy_mnka' in r_names:
+                        assume_role = Role("eks_assume_role_policy_mnka")
+                        eks_cluster >> assume_role
+                    if 'eks_cluster_autoscaler_role_mnka' in r_names:
+                        autoscaler_role = Role("eks_cluster_autoscaler_role_mnka")
+                        eks_cluster >> autoscaler_role
+                    if 'eks_worker_node_policy_attachment' in r_names:
+                        worker_node_policy = Role("eks_worker_node_policy_attachment")
+                        eks_cluster >> worker_node_policy
+
